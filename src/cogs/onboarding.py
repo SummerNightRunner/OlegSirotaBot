@@ -51,5 +51,12 @@ class Onboarding(commands.Cog):
         if newborn and newborn in message.author.roles:
             await self.store.mark_first_words(message.guild.id, message.author.id)
 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        if member.guild.id != self.cfg.guild_id:
+            return
+        await self.store.delete_first_words(member.guild.id, member.id)
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(Onboarding(bot, bot.cfg, bot.store))
