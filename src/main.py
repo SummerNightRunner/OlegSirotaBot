@@ -20,7 +20,7 @@ bot.store = store
 
 @bot.event
 async def on_ready():
-    print(f"🟢 Бот Онлайн: {bot.user}")
+    print(f"🟢 BOT IS ONLINE: {bot.user}")
 
     await store.init()
 

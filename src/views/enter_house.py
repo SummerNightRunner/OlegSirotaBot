@@ -2,6 +2,7 @@ import discord
 from discord import ui, Interaction
 
 from src.db.onboarding_store import OnboardingStore
+from src.utils.logs import debug, info, warn
 
 class EnterHouseView(ui.View):
     def __init__(self, cfg, store: OnboardingStore):
@@ -19,13 +20,13 @@ class EnterHouseView(ui.View):
         member = interaction.user
 
         if guild is None:
-            print("ENTER_HOUSE: guild is None")
+            debug("ENTER_HOUSE", "guild_is_none")
             return
 
         # 0) персональная защита
         message = interaction.message
         if message is None:
-            print("ENTER_HOUSE: interaction without message")
+            warn("ENTER_HOUSE", "interaction_without_message")
             await interaction.response.send_message(
                 "Сын, эта кнопка без письма. Попроси новую.",
                 ephemeral=True,
@@ -33,14 +34,21 @@ class EnterHouseView(ui.View):
             return
         owner_id = await self.store.get_user_by_message(guild.id, message.id)
         if owner_id is None:
-            print(f"ENTER_HOUSE: no owner for message {message.id} in guild {guild.id}")
+            warn("ENTER_HOUSE", "owner_missing_for_message", guild=guild.id, msg=message.id)
             await interaction.response.send_message(
                 "Сын, это письмо потерялось. Попроси новое приглашение.",
                 ephemeral=True,
             )
             return
         if owner_id != interaction.user.id:
-            print(f"ENTER_HOUSE: wrong user guild={guild.id} msg={message.id} owner={owner_id} actor={interaction.user.id}")
+            warn(
+                "ENTER_HOUSE",
+                "wrong_user",
+                guild=guild.id,
+                msg=message.id,
+                owner=owner_id,
+                actor=interaction.user.id,
+            )
             await interaction.response.send_message(
                 "Эта кнопка не для тебя, сынок.",
                 ephemeral=True,
@@ -52,7 +60,7 @@ class EnterHouseView(ui.View):
 
         # 1) защита: кнопка только для новорождённых
         if newborn is None or newborn not in member.roles:
-            print(f"ENTER_HOUSE: not newborn guild={guild.id} user={member.id}")
+            warn("ENTER_HOUSE", "not_newborn", guild=guild.id, user=member.id)
             await interaction.response.send_message(
                 "Тебе не сюда.",
                 ephemeral=True,
@@ -62,7 +70,7 @@ class EnterHouseView(ui.View):
         # 2) проверка: написал ли первые слова
         has = await self.store.has_first_words(guild.id, member.id)
         if not has:
-            print(f"ENTER_HOUSE: no first_words guild={guild.id} user={member.id}")
+            info("ENTER_HOUSE", "no_first_words", guild=guild.id, user=member.id)
             await interaction.response.send_message(
                 "Напиши здесь свои первые слова, сынок, нажми кнопку ниже и тогда ты сможешь выйти к своим братьям.",
                 ephemeral=True,
@@ -85,5 +93,5 @@ class EnterHouseView(ui.View):
         )
 
         # 5) очистка
-        print(f"ENTER_HOUSE: success guild={guild.id} user={member.id}")
+        info("ENTER_HOUSE", "success", guild=guild.id, user=member.id)
         await self.store.delete_onboarding_state(guild.id, member.id)
