@@ -2,9 +2,8 @@ import discord
 from discord.ext import commands
 
 from src.views.enter_house import EnterHouseView
-from src.config import load_config
 from src.db.onboarding_store import OnboardingStore
-from src.utils.logs import info, warn, debug, error
+from src.utils.logs import info, warn, error
 
 
 class Onboarding(commands.Cog):
@@ -46,26 +45,14 @@ class Onboarding(commands.Cog):
     async def on_message(self, message: discord.Message):
         # 1) игнор ботов
         if message.author.bot:
-            debug("ONBOARDING", "ignored_bot_message", user=message.author.id)
             return
 
         # 2) только наш сервер
         if message.guild is None or message.guild.id != self.cfg.guild_id:
-            if message.guild is None:
-                debug("ONBOARDING", "ignored_dm_message")
-            else:
-                debug("ONBOARDING", "ignored_other_guild", guild=message.guild.id, user=message.author.id)
             return
 
         # 3) интересует только канал "первые-слова"
         if message.channel.id != self.cfg.channel_first_words_id:
-            debug(
-                "ONBOARDING",
-                "ignored_channel",
-                guild=message.guild.id,
-                user=message.author.id,
-                channel=message.channel.id,
-            )
             return
 
         # 4) отмечаем "первые слова" только для новорождённых

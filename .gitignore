@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .env
 sons.db
+data.sqlite3

@@ -93,13 +93,20 @@ class AutoMod(commands.Cog):
         cutoff = now - timedelta(seconds=self.WINDOW_SECONDS)
         while dq and dq[0] < cutoff:
              dq.popleft()
+
+        def is_spam_msg(m: discord.Message) -> bool:
+            return m.author.id == message.author.id and m.created_at >= cutoff
         
         # 5) проверка на спам
         if len(dq) > self.MAX_MESSAGES:
             # удаление сообщения
             try:
-                await message.delete()
-                info("AUTOMOD", "spam_detected", guild=message.guild.id, channel=message.channel.id, user=message.author.id)
+                deleted = await message.channel.purge(
+                    limit=50,
+                    check=is_spam_msg,
+                    bulk=True
+                )
+                info("AUTOMOD", "spam_messages_deleted", guild=message.guild.id, channel=message.channel.id, user=message.author.id, count=len(deleted))
             except Exception as e:
                 error("AUTOMOD", "delete_spam_failed", err=repr(e))
             dq.clear()
