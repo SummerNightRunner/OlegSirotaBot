@@ -3,10 +3,9 @@ from discord.ext import commands
 
 from src.views.enter_house import EnterHouseView
 from src.config import load_config
-
 from src.db.onboarding_store import OnboardingStore
-
 from src.utils.logs import info, warn, debug, error
+
 
 class Onboarding(commands.Cog):
     def __init__(self, bot: commands.Bot, cfg, store: OnboardingStore):
@@ -15,7 +14,7 @@ class Onboarding(commands.Cog):
         self.store = store
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: discord.Member):
         if member.guild.id != self.cfg.guild_id:
             return
         info("ONBOARDING", "member_join", guild=member.guild.id, user=member.id)
@@ -87,7 +86,7 @@ class Onboarding(commands.Cog):
             )
 
     @commands.Cog.listener()
-    async def on_member_remove(self, member):
+    async def on_member_remove(self, member: discord.Member):
         if member.guild.id != self.cfg.guild_id:
             return
         try:

@@ -4,6 +4,7 @@ from discord import ui, Interaction
 from src.db.onboarding_store import OnboardingStore
 from src.utils.logs import debug, info, warn
 
+
 class EnterHouseView(ui.View):
     def __init__(self, cfg, store: OnboardingStore):
         super().__init__(timeout=None)

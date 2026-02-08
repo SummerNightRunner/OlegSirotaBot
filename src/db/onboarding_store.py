@@ -1,6 +1,7 @@
 import aiosqlite
 from datetime import datetime
 
+
 class OnboardingStore:
     """
     Хранилище: отметки о первом сообщении, а также связь кнопки и юзера
