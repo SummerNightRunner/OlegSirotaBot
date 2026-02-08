@@ -12,6 +12,7 @@ class AutoMod(commands.Cog):
     STRIKE_WINDOW_MINUTES = 10
     TIMEOUT_MINUTES = 10
     LOOP_TIME_HOURS = 1
+    NOTICE_DELETE_SECONDS = 120
 
     def __init__(self, bot: commands.Bot, cfg):
         self.bot = bot
@@ -124,7 +125,7 @@ class AutoMod(commands.Cog):
                     try:
                         await message.channel.send(
                             f"{message.author.mention} - этот сын отправился молчать в комнату к бабуле на 10 минут.",
-                            delete_after=10
+                            delete_after=self.NOTICE_DELETE_SECONDS
                         )
                         info("AUTOMOD", "mute_message_sent", guild=message.guild.id, channel=message.channel.id, user=message.author.id)
                     except Exception as e:
@@ -136,7 +137,7 @@ class AutoMod(commands.Cog):
                 try:
                     await message.channel.send(
                         f"{message.author.mention}, сынок, не спеши. Пиши спокойнее, за повтор пойдешь полчать в комнату к бабуле на 10 минут.",
-                        delete_after=10
+                        delete_after=self.NOTICE_DELETE_SECONDS
                     )
                     info("AUTOMOD", "warn_message_sent", guild=message.guild.id, channel=message.channel.id, user=message.author.id)
                 except Exception as e:
