@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime, timedelta, timezone
 from collections import deque, defaultdict
 
@@ -11,12 +11,64 @@ class AutoMod(commands.Cog):
     WINDOW_SECONDS = 8
     STRIKE_WINDOW_MINUTES = 10
     TIMEOUT_MINUTES = 10
+    LOOP_TIME_HOURS = 1
 
     def __init__(self, bot: commands.Bot, cfg):
         self.bot = bot
         self.cfg = cfg
         self._recent = defaultdict(deque)
         self._last_strike = {}
+        try:
+            self.cleanup_task.start()
+            info("AUTOMOD", "cleanup_task_started", interval_hours=1)
+        except Exception as e:
+            error("AUTOMOD", "cleanup_task_start_failed", err=repr(e))
+    
+    def cog_unload(self):
+        if self.cleanup_task.is_running():
+            self.cleanup_task.cancel()
+        info("AUTOMOD", "cleanup_task_stopped")
+
+    @tasks.loop(hours=1)
+    async def cleanup_task(self):
+        now = datetime.now(timezone.utc)
+
+        keys_to_delete = []
+        removed_recent = 0
+        removed_strikes = 0
+
+        # переодическое удаление из _recent
+        for key, values in self._recent.items():
+            if (not values
+                or now - values[-1] > timedelta(hours=self.LOOP_TIME_HOURS)):
+                keys_to_delete.append(key)
+
+        for key in keys_to_delete:
+            del self._recent[key]
+            removed_recent += 1
+        keys_to_delete.clear()
+
+        # переодическое удаление из _last_strike
+        for key, value in self._last_strike.items():
+            if now - value > timedelta(hours=self.LOOP_TIME_HOURS):
+                keys_to_delete.append(key)
+
+        for key in keys_to_delete:
+            del self._last_strike[key]
+            removed_strikes += 1
+        keys_to_delete.clear()
+
+        if removed_recent or removed_strikes:
+            info("AUTOMOD", "cleanup_done", recent=removed_recent, strikes=removed_strikes)
+
+    @cleanup_task.before_loop
+    async def before_cleanup_task(self):
+        await self.bot.wait_until_ready()
+        info("AUTOMOD", "cleanup_task_ready")
+
+    @cleanup_task.error
+    async def cleanup_task_error(self, exc: Exception):
+        error("AUTOMOD", "cleanup_task_failed", err=repr(exc))
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -41,8 +93,6 @@ class AutoMod(commands.Cog):
         cutoff = now - timedelta(seconds=self.WINDOW_SECONDS)
         while dq and dq[0] < cutoff:
              dq.popleft()
-        if not dq:
-            del self._recent[(message.guild.id, message.channel.id, message.author.id)]
         
         # 5) проверка на спам
         if len(dq) > self.MAX_MESSAGES:
@@ -53,6 +103,7 @@ class AutoMod(commands.Cog):
             except Exception as e:
                 error("AUTOMOD", "delete_spam_failed", err=repr(e))
             dq.clear()
+            self._recent.pop((message.guild.id, message.channel.id, message.author.id), None)
 
             last = self._last_strike.get((message.guild.id, message.author.id))
             self._last_strike[(message.guild.id, message.author.id)] = now
