@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def log(level, tag, message, **fields):
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     args = " ".join([f"{k}={v}" for k, v in fields.items()])
